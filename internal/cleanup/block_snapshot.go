@@ -12,24 +12,24 @@ import (
 var _ tester.PackerCleanup = (*BlockSnapshotCleanup)(nil)
 
 type BlockSnapshotCleanup struct {
-	zone         scw.Zone
-	snapshotName string
+	zone       scw.Zone
+	namePrefix string
 }
 
-func BlockSnapshot(zone scw.Zone, name string) *BlockSnapshotCleanup {
+func BlockSnapshot(zone scw.Zone, namePrefix string) *BlockSnapshotCleanup {
 	return &BlockSnapshotCleanup{
-		zone:         zone,
-		snapshotName: name,
+		zone:       zone,
+		namePrefix: namePrefix,
 	}
 }
 
-func (i *BlockSnapshotCleanup) Cleanup(ctx context.Context) error {
+func (b *BlockSnapshotCleanup) Cleanup(ctx context.Context) error {
 	testCtx := tester.ExtractCtx(ctx)
 	api := block.NewAPI(testCtx.ScwClient)
 
 	resp, err := api.ListSnapshots(&block.ListSnapshotsRequest{
-		Name:      &i.snapshotName,
-		Zone:      i.zone,
+		Name:      &b.namePrefix,
+		Zone:      b.zone,
 		ProjectID: &testCtx.ProjectID,
 	}, scw.WithAllPages(), scw.WithContext(ctx))
 	if err != nil {
@@ -37,16 +37,20 @@ func (i *BlockSnapshotCleanup) Cleanup(ctx context.Context) error {
 	}
 
 	if len(resp.Snapshots) == 0 {
-		return fmt.Errorf("could not find any block snapshot by the name %q", i.snapshotName)
+		return fmt.Errorf("could not find any block snapshot prefixed with %q", b.namePrefix)
 	}
 
-	err = api.DeleteSnapshot(&block.DeleteSnapshotRequest{
-		Zone:       i.zone,
-		SnapshotID: resp.Snapshots[0].ID,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to delete block snapshot: %w", err)
+	for _, snapshot := range resp.Snapshots {
+		err = api.DeleteSnapshot(&block.DeleteSnapshotRequest{
+			Zone:       b.zone,
+			SnapshotID: snapshot.ID,
+		}, scw.WithContext(ctx))
+		if err != nil {
+			return fmt.Errorf("failed to delete block snapshot: %w", err)
+		}
 	}
+
+	fmt.Printf("deleted block snapshot %q\n", resp.Snapshots[0].Name)
 
 	return nil
 }

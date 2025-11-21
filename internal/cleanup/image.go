@@ -43,10 +43,12 @@ func (i *ImageCleanup) Cleanup(ctx context.Context) error {
 	err = api.DeleteImage(&instance.DeleteImageRequest{
 		Zone:    i.zone,
 		ImageID: resp.Images[0].ID,
-	})
+	}, scw.WithContext(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to delete image: %w", err)
 	}
+
+	fmt.Printf("deleted image %q\n", resp.Images[0].Name)
 
 	return nil
 }
