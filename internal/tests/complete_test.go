@@ -108,6 +108,3 @@ func TestComplete(t *testing.T) {
 		},
 	})
 }
-
-// TODO : test named and unnamed volumes
-// TODO: checks args naming
