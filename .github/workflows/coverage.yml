@@ -19,8 +19,6 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: stable
-      - name: Install plugin
-        run: make install-plugin
       - name: Build binaries
         run: make dev
       - name: Run coverage
